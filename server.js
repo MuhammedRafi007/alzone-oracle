@@ -434,6 +434,40 @@ app.get('/api/tickets', (req, res) => {
   });
 });
 
+// Create New Discrepancy Ticket
+app.post('/api/tickets', (req, res) => {
+  const { title, receiptNo, invoiceNo, supplier, issueType, severity, amount } = req.body;
+
+  if (!title || !receiptNo || !invoiceNo || !supplier || !issueType || !severity || amount === undefined) {
+    return res.status(400).json({ error: 'All ticket parameters are required.' });
+  }
+
+  const year = new Date().getFullYear();
+  const timestampStr = Date.now().toString().slice(-4);
+  const id = `TKT-${year}-${timestampStr}`;
+  const status = 'Open';
+  const timestamp = new Date().toLocaleString('en-US', {
+    hour12: true,
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  db.run(
+    'INSERT INTO tickets (id, title, receiptNo, invoiceNo, supplier, issueType, severity, amount, status, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [id, title, receiptNo, invoiceNo, supplier, issueType, severity, Number(amount), status, timestamp],
+    function (err) {
+      if (err) {
+        console.error('Failed to create ticket:', err.message);
+        return res.status(500).json({ error: 'Failed to create ticket.' });
+      }
+      res.json({ success: true, id, status, timestamp });
+    }
+  );
+});
+
 // Update Ticket (e.g. mark status Resolved)
 app.put('/api/tickets/:id', (req, res) => {
   const { id } = req.params;
